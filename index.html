@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="so">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bade Academy</title>
+<style>
+:root{--gold:#d6a83b;--green:#168a62;--yellow:#f3c928;--red:#dc4545;--ink:#171717;--paper:#fffdf8}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+header{background:#171717;color:white;padding:18px 16px;border-bottom:4px solid var(--gold)}
+.brand{display:flex;align-items:center;gap:12px;max-width:1050px;margin:auto}.logo{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--gold),#fff0a0);display:grid;place-items:center;color:#171717;font-size:26px;font-weight:900}
+h1{font-size:1.4rem;margin:0}header p{margin:3px 0 0;color:#ddd;font-size:.9rem}
+main{max-width:1050px;margin:22px auto;padding:0 14px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+button,.tab{border:0;border-radius:12px;padding:11px 15px;background:#eee;color:#222;font-weight:700;cursor:pointer}
+.tab.active{background:var(--gold);color:#171717}.panel{background:white;border:1px solid #eee;border-radius:18px;padding:17px;box-shadow:0 5px 20px #00000008}
+h2{margin:0 0 14px;font-size:1.2rem}.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1;min-width:140px}
+input,select{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;font:inherit;margin:5px 0 12px;background:white}
+.primary{background:#171717;color:white}.gold{background:var(--gold);color:#171717}.danger{background:#fee;color:#a22}
+table{width:100%;border-collapse:collapse;margin-top:14px}th,td{text-align:left;padding:11px 8px;border-bottom:1px solid #eee}th{font-size:.88rem;color:#555}
+.status{display:inline-block;padding:6px 10px;border-radius:20px;font-size:.82rem;font-weight:800}.present{background:#dff5eb;color:#08764e}.absent{background:#fee2e2;color:#b42323}
+.small{font-size:.85rem;color:#666}.hidden{display:none}.student-actions{display:flex;gap:6px;flex-wrap:wrap}.student-actions button{padding:8px 10px}
+#notice{margin:12px 0;padding:10px;border-radius:10px;background:#f5f1e6;color:#5c4714;display:none}
+footer{text-align:center;color:#666;padding:24px 10px;font-size:.9rem}.help{position:fixed;right:15px;bottom:18px;background:var(--green);color:white;border-radius:50%;width:58px;height:58px;font-size:25px;box-shadow:0 5px 18px #0003}
+a{color:inherit}@media(max-width:600px){th:nth-child(3),td:nth-child(3){display:none}.panel{padding:13px}h1{font-size:1.2rem}}
+</style>
+</head>
+<body>
+<header><div class="brand"><div class="logo" aria-label="Bade Academy logo">BA</div><div><h1>Bade Academy</h1><p>Maamulka ardayda • Attendance • Fee</p></div></div></header>
+<main>
+<div class="tabs"><button class="tab active" data-tab="students">Ardayda</button><button class="tab" data-tab="attendance">Attendance</button><button class="tab" data-tab="fees">Fee-ga</button></div>
+<div id="notice"></div>
+<section id="students" class="panel">
+<h2>➕ Ku dar arday</h2>
+<form id="studentForm"><div class="row"><div><label>Magaca ardayga</label><input id="studentName" required placeholder="Magaca oo buuxa"></div><div><label>Fasalka</label><input id="studentClass" placeholder="Tusaale: Form 4"></div></div><button class="primary" type="submit">Kaydi ardayga</button></form>
+<h2 style="margin-top:24px">Liiska ardayda</h2><input id="search" placeholder="Raadi magaca ardayga…">
+<div style="overflow-x:auto"><table><thead><tr><th>Magaca</th><th>Fasalka</th><th>Joogitaanka</th><th>Ficil</th></tr></thead><tbody id="studentRows"><tr><td colspan="4" class="small">Firebase ayaa la sugayaa…</td></tr></tbody></table></div>
+</section>
+<section id="attendance" class="panel hidden"><h2>🗓️ Attendance</h2><p class="small">Badhanka u rogo Joog / Maqan. Cagaar = jooga, casaan = maqan.</p><label>Taariikhda</label><input type="date" id="attendanceDate"><div id="attendanceRows"></div></section>
+<section id="fees" class="panel hidden"><h2>💰 Fee-ga ardayda</h2><p class="small">Qaybtan waxay muujinaysaa xogta lacag-bixinta ee ardayda. Qor lacagta la bixiyey si loo kaydiyo.</p><div id="feeRows"></div></section>
+</main>
+<footer>Bade Academy • Hargeysa <br><span class="small">Caawimo guud: <a href="tel:+252637684429">+252 63 7684429</a></span></footer>
+<button class="help" title="La xiriir caawimada" onclick="location.href='tel:+252637684429'">☏</button>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
+const firebaseConfig = {
+ apiKey:"AIzaSyAZH01AQJBxIiXVhlHhBd_mNj5zcFkC5rg",
+ authDomain:"bade-academy.firebaseapp.com",
+ projectId:"bade-academy",
+ storageBucket:"bade-academy.firebasestorage.app",
+ messagingSenderId:"949255688674",
+ appId:"1:949255688674:web:f56f1f92e348d4d49269bb"
+};
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app), studentsRef=collection(db,"students");
+let students=[];
+const notice=document.querySelector('#notice');
+function showNotice(msg){notice.textContent=msg;notice.style.display='block';setTimeout(()=>notice.style.display='none',5000)}
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));['students','attendance','fees'].forEach(id=>document.getElementById(id).classList.toggle('hidden',id!==b.dataset.tab));render()}));
+document.querySelector('#attendanceDate').value=new Date().toISOString().slice(0,10);
+document.querySelector('#studentForm').addEventListener('submit',async e=>{e.preventDefault();let name=document.querySelector('#studentName').value.trim(),klass=document.querySelector('#studentClass').value.trim();if(!name)return;try{await addDoc(studentsRef,{name, className:klass, present:false, createdAt:serverTimestamp()});e.target.reset();showNotice('Ardayga waa la kaydiyey.')}catch(err){showNotice('Kaydintu way fashilantay. Hubi Firestore Rules iyo internetka.');console.error(err)}});
+document.querySelector('#search').addEventListener('input',render);
+onSnapshot(studentsRef,snap=>{students=snap.docs.map(d=>({id:d.id,...d.data()}));render()},err=>{showNotice('Firebase ma xirmayo: '+err.message);document.querySelector('#studentRows').innerHTML='<tr><td colspan="4">Hubi Firestore rules iyo isku xirka.</td></tr>'});
+async function setAttendance(s,present){try{await updateDoc(doc(db,'students',s.id),{present});showNotice('Attendance waa la cusboonaysiiyey.')}catch(e){showNotice('Attendance lama kaydin: '+e.message)}}
+async function deleteStudent(s){if(!confirm('Ma tirtiraysaa '+s.name+'?'))return;try{await deleteDoc(doc(db,'students',s.id));showNotice('Ardayga waa la tirtiray.')}catch(e){showNotice(e.message)}}
+function render(){let q=(document.querySelector('#search').value||'').toLowerCase();let filtered=students.filter(s=>(s.name||'').toLowerCase().includes(q));document.querySelector('#studentRows').innerHTML=filtered.map(s=>`<tr><td>${esc(s.name||'')}</td><td>${esc(s.className||'—')}</td><td><span class="status ${s.present?'present':'absent'}">${s.present?'Jooga':'Maqan'}</span></td><td><div class="student-actions"><button class="gold" data-toggle="${s.id}">${s.present?'Maqan':'Joog'}</button><button class="danger" data-delete="${s.id}">Tirtir</button></div></td></tr>`).join('')||'<tr><td colspan="4" class="small">Weli arday lama gelin.</td></tr>';
+document.querySelector('#attendanceRows').innerHTML=filtered.map(s=>`<div class="panel" style="margin:9px 0;display:flex;align-items:center;justify-content:space-between;gap:8px"><strong>${esc(s.name||'')}</strong><button class="${s.present?'gold':'primary'}" data-toggle="${s.id}">${s.present?'🟢 Jooga':'🔴 Maqan'}</button></div>`).join('')||'<p>Arday ma jiro.</p>';
+document.querySelector('#feeRows').innerHTML=filtered.map(s=>`<div class="panel" style="margin:9px 0"><strong>${esc(s.name||'')}</strong><div class="row"><input type="number" min="0" placeholder="Lacagta la bixiyey (USD)" id="fee-${s.id}" value="${Number(s.fee||0)}"><button class="gold" data-fee="${s.id}">Kaydi fee</button></div></div>`).join('')||'<p>Arday ma jiro.</p>';
+document.querySelectorAll('[data-toggle]').forEach(b=>b.onclick=()=>{let s=students.find(x=>x.id===b.dataset.toggle);if(s)setAttendance(s,!s.present)});
+document.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{let s=students.find(x=>x.id===b.dataset.delete);if(s)deleteStudent(s)});
+document.querySelectorAll('[data-fee]').forEach(b=>b.onclick=async()=>{let id=b.dataset.fee,val=Number(document.querySelector('#fee-'+id).value||0);try{await updateDoc(doc(db,'students',id),{fee:val});showNotice('Fee-ga waa la kaydiyey.')}catch(e){showNotice('Fee lama kaydin: '+e.message)}});
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+</script>
+</body></html>
